@@ -1,6 +1,6 @@
 # The Unofficial Guide
 
-<!-- Nicholas Tetteh Ofoe — Corpus: `campus_life` -->
+**Nicholas Tetteh Ofoe | Corpus: `campus_life`**
 
 > **This file is your submission.** Fill it in as you go — most sections get
 > written during the milestone that produces them, not at the end.
@@ -21,7 +21,12 @@
 
 ## What This Does
 
-This system answers factual questions about campus life using a corpus of 88 short student-written posts covering admin policies, courses, dining halls, and housing. It retrieves the most relevant chunks for a question, checks whether the best match is close enough to be trustworthy (a relevance cutoff of 0.60), and generates an answer grounded only in the retrieved documents — naming its source and refusing to answer when nothing in the corpus is relevant.
+This project answers factual questions using 88 short posts from the
+`campus_life` corpus. The documents cover administrative policies, courses,
+dining, housing, and other parts of student life. For each question, the system
+retrieves the closest posts and generates an answer using only those sources.
+It cites the source files and refuses questions whose best distance exceeds
+the 0.60 relevance cutoff.
 
 ## Chunking Strategy
 

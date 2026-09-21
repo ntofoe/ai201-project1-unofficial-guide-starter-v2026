@@ -82,22 +82,68 @@ def fallback_split(
 
 def split_documents(documents: list[Document]) -> list[Chunk]:
     """
-    Split documents into chunks. ⚠️ REPLACE THE BODY OF THIS IN MILESTONE 3.
-
-    Right now it just calls the fallback. That is the plain, generic behaviour
-    the brief is talking about.
-
-    When you write your own strategy, set `produced_by` to
-    "chunker.py::split_documents" so your README's Sample Chunks section names
-    the right function. `app.py chunks` prints that string for you.
-
-    Things worth thinking about before you write any code:
-      - Are your documents short posts or long guides?
-      - Is the useful information in one sentence, or spread over a paragraph?
-      - Would splitting on paragraph breaks keep more thoughts intact than
-        splitting on a character count?
+    Split documents into chunks, keeping each document intact as one chunk
+    when it fits within MAX_CHUNK_SIZE. Documents longer than that are split
+    only at paragraph or sentence boundaries, never mid-sentence.
     """
-    return fallback_split(documents)
+    MAX_CHUNK_SIZE = 600
+
+    chunks: list[Chunk] = []
+    for doc in documents:
+        text = doc.text.strip()
+
+        # Short enough to stay as one chunk — this is the common case for
+        # campus_life, where posts average 317 characters.
+        if len(text) <= MAX_CHUNK_SIZE:
+            chunks.append(
+                Chunk(
+                    text=text,
+                    source=doc.source,
+                    index=0,
+                    produced_by="chunker.py::split_documents",
+                )
+            )
+            continue
+
+        # Longer document: split on paragraph breaks first.
+        paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
+
+        pieces: list[str] = []
+        current = ""
+
+        for para in paragraphs:
+            # A single paragraph that's still too long gets split by sentence.
+            if len(para) > MAX_CHUNK_SIZE:
+                sentences = [s.strip() for s in para.split(". ") if s.strip()]
+                for sentence in sentences:
+                    sentence_piece = sentence if sentence.endswith((".", "!", "?")) else sentence + "."
+                    if current and len(current) + len(sentence_piece) + 1 > MAX_CHUNK_SIZE:
+                        pieces.append(current.strip())
+                        current = sentence_piece
+                    else:
+                        current = f"{current} {sentence_piece}".strip()
+                continue
+
+            if current and len(current) + len(para) + 2 > MAX_CHUNK_SIZE:
+                pieces.append(current.strip())
+                current = para
+            else:
+                current = f"{current}\n\n{para}".strip()
+
+        if current:
+            pieces.append(current.strip())
+
+        for i, piece in enumerate(pieces):
+            chunks.append(
+                Chunk(
+                    text=piece,
+                    source=doc.source,
+                    index=i,
+                    produced_by="chunker.py::split_documents",
+                )
+            )
+
+    return chunks
 
 
 def describe(chunks: list[Chunk]) -> str:

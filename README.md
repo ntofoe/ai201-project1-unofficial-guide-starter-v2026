@@ -21,11 +21,7 @@
 
 ## What This Does
 
-<!-- Three or four sentences. Which corpus you picked, and the kinds of
-     questions your system answers. Write it for someone who has never seen
-     this repo.
-
-     Milestone 5. -->
+This system answers factual questions about campus life using a corpus of 88 short student-written posts covering admin policies, courses, dining halls, and housing. It retrieves the most relevant chunks for a question, checks whether the best match is close enough to be trustworthy (a relevance cutoff of 0.60), and generates an answer grounded only in the retrieved documents — naming its source and refusing to answer when nothing in the corpus is relevant.
 
 ## Chunking Strategy
 
@@ -144,18 +140,9 @@ passed the gate and all five out-of-scope questions were refused.
 
 ## How I Used AI
 
-<!-- Two specific moments. For each: what you asked for, what came back, and
-     what you changed about it.
+**1.** I described my chunking rule in plain English (600-character max, no overlap, split only at paragraph or sentence boundaries) and asked Claude to write the Python function. It came back working correctly on the first try against my campus_life corpus, so I didn't need to change the logic — I tested it with `python app.py index` and `python app.py chunks -n 5` to confirm it matched what I'd described.
 
-     "I asked Claude to write the chunking function from my notes. It ignored
-     the overlap, so I added that myself" is the level of detail we're after.
-     "I used AI to help me code" is not.
-
-     Milestone 5. -->
-
-**1.**
-
-**2.**
+**2.** When indexing failed with a cryptic ONNXRuntimeError from CoreML, I pasted the full error to Claude. It correctly diagnosed it as an Apple Neural Engine incompatibility. The first fix it suggested (downgrading onnxruntime) didn't work, so it searched further and found the actual fix — forcing `preferred_providers=["CPUExecutionProvider"]` in `store.py` — which I applied and confirmed worked.
 
 <!-- ── Stretch features ─────────────────────────────────────────────────────
      Doing one? Say so here BEFORE you start. A feature this README never

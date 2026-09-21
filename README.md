@@ -106,30 +106,41 @@ Laundry costs $1.75 wash, $1.75 dry, app-based. On noise: moderate; the building
 ```
 ## Sample Answer
 
-<!-- One complete question and answer, pasted as text, with the source line
-     visible. Milestone 4. -->
 
-**Question:**
+**Question:** How many midterms are given in CS 210?
 
 **Answer:**
 
 ```
+(best distance 0.304, cutoff 0.6)
+
+There are two midterms given in CS 210.
+
+Source: course_cs_210.txt (and course_cs_210_exams.txt)
+
+Sources retrieved: course_cs_210.txt, course_cs_210_exams.txt, course_cs_340_exams.txt, course_math_220_exams.txt, course_stat_150_exams.txt
 ```
 
-**My relevance cutoff:**
+**My relevance cutoff:** `0.60`
 
-<!-- The number you set in config.py, and how you got there.
-
-     You ran five questions your corpus covers and the five in OUT_OF_SCOPE
-     that it clearly doesn't, and wrote down the best distance for each. What
-     did those two groups look like? Where was the gap? Put the actual numbers
-     here — the table below wants all ten rows.
-
-     Milestone 4. -->
+The five in-corpus questions had best distances between 0.1856 and 0.3773.
+The five out-of-scope questions had best distances between 0.8246 and 0.9340.
+This left a gap from 0.3773 to 0.8246. I kept the cutoff at 0.60 because it is
+near the middle of that gap. With this cutoff, all five in-corpus questions
+passed the gate and all five out-of-scope questions were refused.
 
 | Question | In corpus? | Best distance |
-|---|---|---|
-|  |  |  |
+|---|---:|---:|
+| How much printing credit does each student receive per semester? | Yes | 0.3719 |
+| What is the last week in which a student can add a course? | Yes | 0.3773 |
+| How many midterms are given in CS 210? | Yes | 0.3042 |
+| How quickly do student parking permits for the west lots usually sell out? | Yes | 0.1856 |
+| When are housing-lottery numbers released? | Yes | 0.3772 |
+| What is the capital of Mongolia? | No | 0.8246 |
+| How do I change the oil in a diesel engine? | No | 0.9340 |
+| Who won the 1994 World Cup? | No | 0.8859 |
+| What is the recommended dosage of ibuprofen for a headache? | No | 0.8442 |
+| How do I write a for loop in Rust? | No | 0.8960 |
 
 ## How I Used AI
 

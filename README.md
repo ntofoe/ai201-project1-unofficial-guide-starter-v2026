@@ -196,23 +196,26 @@ Two midterms are given in CS 210, as stated in the documents course_cs_210_exams
 
 ## Diagnoses
 
-<!-- For each miss: which stage caused it, and how. The stage alone isn't
-     enough — you need the mechanism.
+I missed nothing on this run — all five criteria were MET. Per the note above about setting
+safe targets, I looked honestly at where I had the most slack.
 
-     Not a diagnosis: "Question 3 didn't work."
-     A diagnosis:     "Question 3 asks about laundry costs. The answer is in
-                       one sentence that got split across two chunks, so
-                       neither chunk on its own contains it."
+Criterion 1 (retrieved chunk contains the answer) and criterion 3 (gate stops out-of-corpus
+questions) both came out 5/5 against a 4/5 target. Criterion 3 is a deterministic pass/fail
+comparison against a fixed distance cutoff, so there isn't a meaningful way to "get lucky" on
+it — it's simple rather than loose.
 
-     The five stages: loading → chunking → embedding → retrieval → generation.
+Criterion 1 is the one I'd tighten. As written, it only checks whether the correct chunk appears
+*anywhere* in the top 5 retrieved results. A chunk could rank 5th out of 5 and still count as a
+pass, even though a system using a smaller top-k (2 or 3, which is common for keeping prompts
+short) would never actually see it. That's a real gap between what the criterion measures and
+what the system needs to do well.
 
-     Look for a pattern. If three misses all ask about numbers, that's one
-     problem, not three.
+**Revised in unit 2:** For at least 4 of my 5 test questions, the answer appears within the
+top 2 retrieved chunks (not just anywhere in the top 5).
 
-     Missed nothing? Say so, then say honestly whether your targets were set
-     low, and which one you'd tighten and to what.
-
-     Milestone 3. -->
+**Why revised:** The original criterion couldn't distinguish a system that ranks answers first
+from one that barely surfaces them at rank 5. The top-2 version tests something a smaller,
+more realistic top-k would actually need to satisfy.
 
 ## The Improvement
 

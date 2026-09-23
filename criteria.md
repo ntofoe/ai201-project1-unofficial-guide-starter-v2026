@@ -28,6 +28,15 @@ Each test question is based on a specific fact that appears directly in the
 campus-life documents. I chose 4 of 5 instead of 5 of 5 because retrieval may
 rank a closely related document above the exact source for one question.
 
+
+> **Revised in unit 2:** For at least 4 of my 5 test questions, the answer appears within the
+> top 2 retrieved chunks, not just anywhere in the top 5.
+>
+> **Why revised:** The original criterion couldn't distinguish a system that ranks the answer
+> first from one that barely surfaces it at rank 5. A smaller, more realistic top-k (2 or 3)
+> would never see a chunk that only made it into the top 5 — the top-2 version tests something
+> that actually matters for how the system would really be used.
+
 ---
 
 ## 2. Every answer names a source

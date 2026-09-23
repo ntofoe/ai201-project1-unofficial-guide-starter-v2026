@@ -158,52 +158,41 @@ passed the gate and all five out-of-scope questions were refused.
 
 # Unit 2
 
-<!-- These sections get ADDED to what's already above. Don't delete or rewrite
-     unit 1 — the point is that someone can see what you said before you knew
-     how it went. -->
-
 ## Run Log — Before
-
-<!-- Your five criteria, three runs each. `python run_eval.py --label before`
-     runs the questions, puts the OUT_OF_SCOPE ones through the gate, and
-     writes it all into results/ for you. Targets come from criteria.md; the
-     verdict column is your call.
-
-     Criterion 3 is measured in one deterministic pass rather than three, so
-     the same number goes in all three run columns. That's correct, not lazy.
-
-     Milestone 1. -->
 
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1. Retrieved chunk contains the answer | 4 of 5 |  |  |  |  |
-| 2. Every answer names a source | 5 of 5 |  |  |  |  |
-| 3. Gate stops out-of-corpus questions | 4 of 5 |  |  |  |  |
-| 4. | | | | | |
-| 5. | | | | | |
+| 1. Retrieved chunk contains the answer | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 2. Every answer names a source | 5 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 3. Gate stops out-of-corpus questions | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 4. Sampled chunks preserve complete information | 8 of 10 | 10/10 | 10/10 | 10/10 | MET |
+| 5. Source citations support the answers | 5 of 5 | 5/5 | 5/5 | 5/5 | MET |
 
-<!-- Underneath, paste the REAL output for each criterion from one of your
-     runs — the actual text your system produced, not a description of it.
-     Name the file and function that produced it. -->
+Criterion 3 is measured in one deterministic pass since the gate is a fixed comparison, so
+the same 5/5 appears in all three run columns. Criterion 4 was also measured once (10
+chunks sampled) for the same reason — chunking is deterministic and doesn't vary between
+runs.
+
+**Sample output** — produced by `run_eval.py::main`, from `results/run_2026-09-23_1920_before.md`:
+
+**Question:** How much printing credit does each student receive per semester?
+
+Each student receives $30 of printing per semester. (Source: admin_printing_quota.txt)
+
+**Question:** How many midterms are given in CS 210?
+
+Two midterms are given in CS 210, as stated in the documents course_cs_210_exams.txt and course_cs_210.txt.
+
 
 ## Verdicts
 
-<!-- MET or MISSED for each of the five, against the target you wrote last
-     unit — not a new one. Plus a sentence on how you decided. That sentence
-     matters most where it was close.
-
-     If your target said 4 of 5 and your runs came out 4, 3, 4, that's a MISS.
-     The target has to hold, not show up occasionally.
-
-     Milestone 2. -->
-
 | # | Criterion | Verdict | How I decided |
 |---|---|---|---|
-| 1 |  |  |  |
-| 2 |  |  |  |
-| 3 |  |  |  |
-| 4 |  |  |  |
-| 5 |  |  |  |
+| 1 | Retrieved chunk contains the answer | MET | All 5 questions had their correct source file in the retrieved chunks, across all 3 runs (5/5 every time), comfortably above the 4/5 target. |
+| 2 | Every answer names a source | MET | Every one of the 15 answers (5 questions × 3 runs) explicitly named its source file. |
+| 3 | Gate stops out-of-corpus questions | MET | All 5 out-of-scope questions were refused by the gate, matching the deterministic single-pass measurement. |
+| 4 | Sampled chunks preserve complete information | MET | All 10 sampled chunks ended at a clean sentence boundary and were understandable without needing the surrounding text. |
+| 5 | Source citations support the answers | MET | For every question, the cited source file was the same one that actually contained the fact used in the answer — no answer cited an unrelated file. |
 
 ## Diagnoses
 

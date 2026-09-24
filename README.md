@@ -219,48 +219,65 @@ more realistic top-k would actually need to satisfy.
 
 ## The Improvement
 
-**What I changed:**
+**What I changed:** I added hybrid search to `store.py::search`. Instead of returning
+Chroma's top-k results directly, the function now pulls a larger candidate pool
+(4× top-k) when `USE_HYBRID_SEARCH` is enabled in `config.py`, then re-ranks that pool
+by blending semantic similarity with a BM25 keyword-overlap score (50/50 weighting),
+before returning the final top-k. `rank-bm25` was already in `requirements.txt`, so no
+new install was needed.
 
-**Why I picked it:**
-
-<!-- Connect it to a specific diagnosis above in one sentence. If you can't,
-     you picked a fix because it sounded impressive. -->
+**Why I picked it:** My revised criterion 1 in Milestone 3 pointed directly at a ranking
+problem, not a presence problem — the correct chunk was always somewhere in the top 5,
+but not reliably in the top 2. Several of my test questions contain exact terms (a course
+code, a specific dollar amount, a named location) that keyword matching is well-suited
+to reward, which pure semantic embedding can under-weight.
 
 ### Run Log — After
 
-<!-- Same format, same five criteria, three runs each.
-     `python run_eval.py --label after` -->
-
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1. Retrieved chunk contains the answer | 4 of 5 |  |  |  |  |
-| 2. Every answer names a source | 5 of 5 |  |  |  |  |
-| 3. Gate stops out-of-corpus questions | 4 of 5 |  |  |  |  |
-| 4. | | | | | |
-| 5. | | | | | |
+| 1. Retrieved chunk in top 2 (revised) | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 2. Every answer names a source | 5 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 3. Gate stops out-of-corpus questions | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 4. Sampled chunks preserve complete information | 8 of 10 | 10/10 | 10/10 | 10/10 | MET |
+| 5. Source citations support the answers | 5 of 5 | 5/5 | 5/5 | 5/5 | MET |
 
-**Did it help?**
+**Sample output** — produced by `run_eval.py::main`, from `results/run_2026-09-23_2003_after.md`:
 
-<!-- Say plainly whether it did, and how you know. If it made things worse,
-     say that — a change that backfired, honestly reported, earns full credit
-     and is more interesting than one that worked. What matters is that you can
-     tell.
+**Question:** How much printing credit does each student receive per semester?
+Sources retrieved: admin_graduation_requirements.txt, admin_printing_quota.txt, admin_transcript_requests.txt, money_jobs.txt, study_group_rooms.txt
 
-     Milestone 4. -->
+Each student receives $30 of printing per semester (admin_printing_quota.txt).
+
+**Did it help?** Yes, measurably. Against the tightened criterion 1 (answer in top 2),
+the "before" run only hit 4 of 5 — `admin_printing_quota.txt` was buried at rank 3 under
+pure semantic search. After adding hybrid search, all 5 of 5 questions had their answer
+in the top 2. The keyword-overlap boost from BM25 pulled the printing-quota chunk from
+rank 3 to rank 2, exactly the mechanism the diagnosis pointed at. Nothing else regressed:
+criteria 2 through 5 stayed at the same results, and the out-of-scope gate still refused
+5 of 5 (two distances shifted slightly, from 0.825→0.869 and 0.844→0.860, but stayed
+well clear of the 0.6 cutoff).
 
 ## What's Still Broken
 
-<!-- For each criterion still missed after your fix: what you'd do about it,
-     and why you stopped where you did.
-
-     "I ran out of time" is fine if it's true. Pretending nothing is left is
-     not.
-
-     Milestone 5. -->
+Nothing is missed against any of the five criteria, including the tightened version of
+criterion 1. That said, the improvement I made only directly tested and fixed criterion 1 —
+the other four criteria (naming sources, the relevance gate, chunk completeness, and citation
+accuracy) were not stress-tested by this change, so their comfortable margins remain
+unverified under harder conditions. If I had more time, I'd want to write a second,
+deliberately harder test question for each of criteria 2 and 5 — something like a question
+whose answer spans two source files, to see whether the system still names every source
+correctly and cites the one that actually supports the fact used, rather than just the
+first one retrieved.
 
 ## What I'd Do Differently
 
-<!-- Knowing what you know now — which of your five criteria would you write
-     differently, and why?
-
-     Milestone 5. -->
+Looking back, criterion 2 ("every answer names a source," target 5 of 5) and criterion 5
+("source citations support the answers," target 5 of 5) were both set at the highest
+possible bar with no room to observe a near-miss — a system either does this or it doesn't,
+so there's no way to tell whether these targets are comfortably met or barely met. Next
+time I'd write these more like a rate rather than an absolute ("at least 4 of 5" rather
+than "5 of 5"), so a single edge case wouldn't silently look identical to a system that
+handles every case robustly. I'd also add a question early on that specifically targets a
+fact spanning two source files, since none of my original five questions test whether
+citation logic holds up when the answer isn't fully contained in one document.

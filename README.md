@@ -230,20 +230,30 @@ rank-ordered.
 
 ## The Improvement
 
-**What I changed:** I added hybrid search to `store.py::search`. Instead of returning
-Chroma's top-k results directly, the function now pulls a larger candidate pool
-(4× top-k) when `USE_HYBRID_SEARCH` is enabled in `config.py`, then re-ranks that pool
-by blending semantic similarity with a BM25 keyword-overlap score (50/50 weighting),
-before returning the final top-k. `rank-bm25` was already in `requirements.txt`, so no
-new install was needed.
+**What I changed (improvement 1 — hybrid search, kept from the original submission):**
+I added hybrid search to `store.py::search`, blending BM25 keyword overlap with semantic
+similarity when `USE_HYBRID_SEARCH` is enabled in `config.py`. I originally credited this
+with fixing a top-2 ranking problem on the printing-credit question. On resubmission, after
+building `scorer.py` and `rank_log.csv` to log rank directly rather than reading it off an
+alphabetized source list, I confirmed that problem never existed — `admin_printing_quota.txt`
+was at rank 1 in both the hybrid-off and hybrid-on configurations. I'm keeping the feature in
+the codebase (it's a reasonable technique and the toggle is harmless), but I'm withdrawing
+the original claim that it fixed anything, since the measurement behind that claim was wrong.
 
-**Why I picked it:** My revised criterion 1 in Milestone 3 pointed directly at a ranking
-problem, not a presence problem — the correct chunk was always somewhere in the top 5,
-but not reliably in the top 2. Several of my test questions contain exact terms (a course
-code, a specific dollar amount, a named location) that keyword matching is well-suited
-to reward, which pure semantic embedding can under-weight.
+**What I changed (improvement 2 — the real fix):**
+I found and fixed the actual bug behind the original misdiagnosis: `run_eval.py::write_report`
+built its "Sources retrieved" transcript line with
+`sorted({r.source for r in results})` — alphabetically sorted, discarding the real retrieval
+order entirely. I read that alphabetized list as if it reflected rank, and that misreading is
+what produced the original (false) "rank 3" claim. The fix is a one-line change:
+`[r.source for r in results]`, preserving the order `store.py::search` actually returns.
 
-### Run Log — After
+**Why I picked it:** This is a direct fix for the actual failure, which wasn't in the
+retrieval or ranking logic at all — it was in the evaluation tooling itself. A run log that
+misrepresents rank order is a measurement bug, and it's a more serious one than a borderline
+retrieval score, because it silently produces wrong conclusions that look like evidence.
+
+### Run Log — After 
 
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
@@ -253,42 +263,58 @@ to reward, which pure semantic embedding can under-weight.
 | 4. Sampled chunks preserve complete information | 8 of 10 | 10/10 | 10/10 | 10/10 | MET |
 | 5. Source citations support the answers | 5 of 5 | 5/5 | 5/5 | 5/5 | MET |
 
-**Sample output** — produced by `run_eval.py::main`, from `results/run_2026-09-23_2003_after.md`:
+**Sample output** — produced by `run_eval.py::main`, from `results/run_2026-10-02_1228_before_fixed.md`,
+with `USE_HYBRID_SEARCH = False` and the rank-order fix applied:
 
 **Question:** How much printing credit does each student receive per semester?
-Sources retrieved: admin_graduation_requirements.txt, admin_printing_quota.txt, admin_transcript_requests.txt, money_jobs.txt, study_group_rooms.txt
+
+Sources retrieved: admin_printing_quota.txt, admin_graduation_requirements.txt, money_textbooks.txt, money_jobs.txt, admin_campus_jobs_and_financial_aid.txt
 
 Each student receives $30 of printing per semester (admin_printing_quota.txt).
 
-**Did it help?** Yes, measurably. Against the tightened criterion 1 (answer in top 2),
-the "before" run only hit 4 of 5 — `admin_printing_quota.txt` was buried at rank 3 under
-pure semantic search. After adding hybrid search, all 5 of 5 questions had their answer
-in the top 2. The keyword-overlap boost from BM25 pulled the printing-quota chunk from
-rank 3 to rank 2, exactly the mechanism the diagnosis pointed at. Nothing else regressed:
-criteria 2 through 5 stayed at the same results, and the out-of-scope gate still refused
-5 of 5 (two distances shifted slightly, from 0.825→0.869 and 0.844→0.860, but stayed
-well clear of the 0.6 cutoff).
+
+Also confirmed directly from `results/rank_log.csv`, which `scorer.py` writes on every
+run by reading rank straight from the `results` object (not a human-readable string):
+`admin_printing_quota.txt` is logged at rank 1 across all 3 runs, in both the
+hybrid-off and hybrid-on configurations.
+
+**Did it help?** The rank-order fix (improvement 2) didn't change any system behavior — it
+corrected the evaluation tooling so future claims about rank are actually traceable to logged
+data instead of a human reading an alphabetized string. Improvement 1 (hybrid search)
+produced no measurable change either way, since there was no ranking problem for it to fix.
+Neither improvement moved any criterion's verdict, because all five were already MET and
+stayed MET under the corrected, honest measurement — but the resubmission replaces a false
+positive explanation with a traceable, reproducible one.
 
 ## What's Still Broken
 
-Nothing is missed against any of the five criteria, including the tightened version of
-criterion 1. That said, the improvement I made only directly tested and fixed criterion 1 —
-the other four criteria (naming sources, the relevance gate, chunk completeness, and citation
-accuracy) were not stress-tested by this change, so their comfortable margins remain
-unverified under harder conditions. If I had more time, I'd want to write a second,
-deliberately harder test question for each of criteria 2 and 5 — something like a question
-whose answer spans two source files, to see whether the system still names every source
-correctly and cites the one that actually supports the fact used, rather than just the
-first one retrieved.
+All five criteria are MET against the original targets, and the resubmission corrected a
+measurement bug rather than finding or fixing a new functional failure. That said, the
+underlying tooling gap is only partially closed: `scorer.py` currently checks rank and
+content only for the five questions in `QUESTIONS`, and the rank log only exists because I
+built it for this resubmission — before that, there was no mechanism at all for verifying a
+rank claim against anything but a human reading an alphabetized string. The same class of bug
+could exist elsewhere in the system without a dedicated check (for example, nothing currently
+verifies that the source named in a *generated answer's citation* matches the source actually
+used to produce that answer, beyond my own manual reading for criterion 5). If I had more
+time, I'd extend `scorer.py` to check that automatically too, rather than relying on inspection.
+
 
 ## What I'd Do Differently
 
-Looking back, criterion 2 ("every answer names a source," target 5 of 5) and criterion 5
-("source citations support the answers," target 5 of 5) were both set at the highest
-possible bar with no room to observe a near-miss — a system either does this or it doesn't,
-so there's no way to tell whether these targets are comfortably met or barely met. Next
-time I'd write these more like a rate rather than an absolute ("at least 4 of 5" rather
-than "5 of 5"), so a single edge case wouldn't silently look identical to a system that
-handles every case robustly. I'd also add a question early on that specifically targets a
-fact spanning two source files, since none of my original five questions test whether
-citation logic holds up when the answer isn't fully contained in one document.
+The single biggest thing I'd do differently: build `scorer.py` and a rank-logging mechanism
+*before* making any claims about retrieval rank, not after. The entire original "hybrid search
+fixed a ranking problem" narrative was built on reading a human-readable, alphabetized list and
+mistaking alphabetical position for rank position — a mistake that a two-line scorer would have
+caught immediately, because it reads rank from the actual `results` object instead of a
+formatted string meant for display. More generally: any time a run log presents retrieved
+items in a list, I'd now ask whether that list's order is load-bearing for any claim I'm about
+to make, and if so, verify the ordering guarantee directly in code rather than assuming a
+human-readable transcript preserves it.
+
+Separately, criterion 2 ("every answer names a source," target 5 of 5) and criterion 5
+("source citations support the answers," target 5 of 5) were both set at the highest possible
+bar with no room to observe a near-miss. Next time I'd write these more like a rate ("at least
+4 of 5") rather than an absolute, and I'd add a question whose answer spans two source files,
+since none of my original five test whether citation logic holds up when the answer isn't
+fully contained in one document.

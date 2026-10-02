@@ -149,10 +149,16 @@ passed the gate and all five out-of-scope questions were refused.
 
 **2.** When indexing failed with a cryptic ONNXRuntimeError from CoreML, I pasted the full error to Claude. It correctly diagnosed it as an Apple Neural Engine incompatibility. The first fix it suggested (downgrading onnxruntime) didn't work, so it searched further and found the actual fix — forcing `preferred_providers=["CPUExecutionProvider"]` in `store.py` — which I applied and confirmed worked.
 
-<!-- ── Stretch features ─────────────────────────────────────────────────────
-     Doing one? Say so here BEFORE you start. A feature this README never
-     claims earns nothing.
-     ───────────────────────────────────────────────────────────────────────── -->
+## Stretch Features
+
+**A second measured improvement (claimed on resubmission):** In addition to the hybrid-search
+change (improvement 1), I diagnosed and fixed a second, independent issue: `run_eval.py`'s
+"Sources retrieved" transcript line sorted sources alphabetically instead of preserving
+retrieval rank, which had produced a false claim about ranking behavior in my original
+submission. I built `scorer.py` to log rank directly from the `results` object, used it to
+discover the bug, fixed the one-line sort issue in `run_eval.py`, and re-ran the evaluation to
+confirm the fix (see "The Improvement," improvement 2, in Unit 2 below for the full diagnosis,
+fix, and before/after evidence).
 
 ---
 

@@ -202,13 +202,9 @@ safe targets, I looked honestly at where I had the most slack.
 Criterion 1 (retrieved chunk contains the answer) and criterion 3 (gate stops out-of-corpus
 questions) both came out 5/5 against a 4/5 target. Criterion 3 is a deterministic pass/fail
 comparison against a fixed distance cutoff, so there isn't a meaningful way to "get lucky" on
-it — it's simple rather than loose.
-
-Criterion 1 is the one I'd tighten. As written, it only checks whether the correct chunk appears
-*anywhere* in the top 5 retrieved results. A chunk could rank 5th out of 5 and still count as a
-pass, even though a system using a smaller top-k (2 or 3, which is common for keeping prompts
-short) would never actually see it. That's a real gap between what the criterion measures and
-what the system needs to do well.
+it. Criterion 1 is the one I'd tighten — as written, it only checks whether the correct chunk
+appears *anywhere* in the top 5, so a chunk ranked 5th still counts as a pass even though a
+smaller top-k would never see it.
 
 **Revised in unit 2:** For at least 4 of my 5 test questions, the answer appears within the
 top 2 retrieved chunks (not just anywhere in the top 5).
@@ -216,6 +212,21 @@ top 2 retrieved chunks (not just anywhere in the top 5).
 **Why revised:** The original criterion couldn't distinguish a system that ranks answers first
 from one that barely surfaces them at rank 5. The top-2 version tests something a smaller,
 more realistic top-k would actually need to satisfy.
+
+**Correction on resubmission:** My original "Did it help?" paragraph claimed
+`admin_printing_quota.txt` was at rank 3 under pure semantic search, and that hybrid search
+moved it to rank 2. That claim was wrong, and I want to be explicit about why rather than
+quietly fix it. `run_eval.py` writes "Sources retrieved" as `sorted({r.source for r in
+results})` — alphabetically sorted, not in retrieval-rank order. I read that alphabetized
+list and mistook position in the alphabet for position in the ranking. After building
+`scorer.py` (below) to log rank directly from the `results` object `run_eval.py` already
+passes to the judge function, I re-ran both the hybrid-off and hybrid-on configurations and
+confirmed `admin_printing_quota.txt` is at **rank 1** in both cases — there was never a
+ranking problem for this question, in either configuration. The revised top-2 criterion
+itself is still a legitimate tightening (it tests something more specific and more honestly
+representative of a smaller top-k), but the specific failure I diagnosed and the specific fix
+I credited for repairing it were both artifacts of reading an alphabetized list as if it were
+rank-ordered.
 
 ## The Improvement
 

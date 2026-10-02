@@ -178,6 +178,30 @@ def build_index(
     return len(chunks)
 
 
+def _hybrid_rerank(question: str, candidates: list[Result], top_k: int) -> list[Result]:
+    """
+    Re-rank semantic candidates by blending in BM25 keyword overlap.
+    Helps when a question contains an exact term (a course code, a place
+    name) that semantic similarity alone can under-weight.
+    """
+    from rank_bm25 import BM25Okapi
+
+    tokenized_corpus = [c.text.lower().split() for c in candidates]
+    bm25 = BM25Okapi(tokenized_corpus)
+    bm25_scores = bm25.get_scores(question.lower().split())
+
+    max_bm25 = max(bm25_scores) if max(bm25_scores) > 0 else 1.0
+
+    scored = []
+    for candidate, bm25_score in zip(candidates, bm25_scores):
+        semantic_similarity = 1 - candidate.distance
+        bm25_normalized = bm25_score / max_bm25
+        combined = 0.5 * semantic_similarity + 0.5 * bm25_normalized
+        scored.append((combined, candidate))
+
+    scored.sort(key=lambda pair: pair[0], reverse=True)
+    return [candidate for _, candidate in scored[:top_k]]
+
 def search(
     question: str,
     top_k: int | None = None,
@@ -199,9 +223,11 @@ def search(
             f"No index called '{name}'. Run `python app.py index` first."
         ) from exc
 
+    pool_size = min(top_k * 4, collection.count()) if config.USE_HYBRID_SEARCH else min(top_k, collection.count())
+
     raw = collection.query(
         query_embeddings=embed([question]),
-        n_results=min(top_k, collection.count()),
+        n_results=pool_size,
     )
 
     results: list[Result] = []
@@ -217,6 +243,10 @@ def search(
                 produced_by=str(meta.get("produced_by", "unknown")),
             )
         )
+
+    if config.USE_HYBRID_SEARCH and len(results) > top_k:
+        results = _hybrid_rerank(question, results, top_k)
+
     return results
 
 

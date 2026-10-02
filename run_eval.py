@@ -123,7 +123,7 @@ def main():
                     "question": question,
                     "run": run,
                     "answer": answer,
-                    "sources": sorted({r.source for r in results}),
+                    "sources": [r.source for r in results],
                     "best_distance": decision.best_distance,
                     "gate_passed": decision.passed,
                 }
